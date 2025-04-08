@@ -1,13 +1,27 @@
 import json
-from typing import Optional
+from typing import Optional, TypedDict
+
 
 from pulumi import Inputs, ResourceOptions
 from pulumi_gcp import container
 from pulumi_gcp.config import project, zone
 import pulumi
 
+class ServiceArgs(TypedDict):
+    app_path: Optional[pulumi.Input[str]]
+    """The path to the application source code."""
+    image_name: Optional[pulumi.Input[str]]
+    """The name of the Docker image."""
+    container_port: Optional[pulumi.Input[int]]
+    """The port the container listens on."""
+    cpu: Optional[pulumi.Input[int]]
+    """The CPU limit for the container."""
+    memory: Optional[pulumi.Input[str]]
+    """The memory limit for the container."""
+    concurrency: Optional[pulumi.Input[int]]
+    """The number of concurrent containers to run."""
 
-class ClusterArgs:
+class ClusterArgs(TypedDict):
 
     master_version: pulumi.Input[str] 
     """The k8s version for the GKE cluster."""
@@ -16,34 +30,27 @@ class ClusterArgs:
     node_machine_type: pulumi.Input[str]
     """The machine type for the GKE cluster."""
 
-    @staticmethod
-    def from_inputs(inputs: Inputs) -> 'ClusterArgs':
-        return ClusterArgs(master_version=inputs['masterVersion'], 
-                           node_count=inputs['nodeCount'], 
-                           node_machine_type=inputs['nodeMachineType'])
-
-    def __init__(self, 
-                 master_version: Optional[pulumi.Input[str]] = None,
-                 node_count: Optional[pulumi.Input[int]] = None,
-                 node_machine_type: Optional[pulumi.Input[str]] = None
-                 ) -> None:
-
-        self.master_version = master_version
-        self.node_count = node_count
-        self.node_machine_type = node_machine_type
-
-
 class Cluster(pulumi.ComponentResource):
+    """
+    Creates Google Cloud K8s cluster.
+    """
     cluster_name: pulumi.Output[str]
+    """
+    Name of the Google Cloud cluster.
+    """
     kubeconfig: pulumi.Output[str]
+    """
+    kubeconfig for accessing the cluster.
+    """
 
-    def __init__(self,
-                 name: str,
-                 args: ClusterArgs,
-                 props: Optional[dict] = None,
-                 opts: Optional[ResourceOptions] = None) -> None:
+    def __init__(
+            self,
+            name: str,
+            args: ClusterArgs,
+            opts: Optional[ResourceOptions] = None
+    ):
 
-        super().__init__('pequod:gke:Cluster', name, props, opts)
+        super().__init__('pequod:gke:Cluster', name, {}, opts)
 
         latest_gke_version = container.get_engine_versions().latest_master_version
         master_version = args.master_version or latest_gke_version
