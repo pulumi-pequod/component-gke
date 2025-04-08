@@ -7,20 +7,6 @@ from pulumi_gcp import container
 from pulumi_gcp.config import project, zone
 import pulumi
 
-class ServiceArgs(TypedDict):
-    app_path: Optional[pulumi.Input[str]]
-    """The path to the application source code."""
-    image_name: Optional[pulumi.Input[str]]
-    """The name of the Docker image."""
-    container_port: Optional[pulumi.Input[int]]
-    """The port the container listens on."""
-    cpu: Optional[pulumi.Input[int]]
-    """The CPU limit for the container."""
-    memory: Optional[pulumi.Input[str]]
-    """The memory limit for the container."""
-    concurrency: Optional[pulumi.Input[int]]
-    """The number of concurrent containers to run."""
-
 class ClusterArgs(TypedDict):
 
     master_version: pulumi.Input[str] 
@@ -53,9 +39,9 @@ class Cluster(pulumi.ComponentResource):
         super().__init__('pequod:gke:Cluster', name, {}, opts)
 
         latest_gke_version = container.get_engine_versions().latest_master_version
-        master_version = args.master_version or latest_gke_version
-        node_count = args.node_count or 3
-        node_machine_type = args.node_machine_type or "n1-standard-1"
+        master_version = args.get("master_version") or latest_gke_version
+        node_count = args.get("node_count") or 3
+        node_machine_type = args.get("node_machine_type") or "n1-standard-1"
 
         k8s_cluster = container.Cluster(f"{name}-cluster", 
                                         initial_node_count=1,
