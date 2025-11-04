@@ -49,7 +49,7 @@ class Cluster(pulumi.ComponentResource):
         if autopilot_enabled:
             k8s_cluster = container.Cluster(
                 f"{name}-cluster",
-                autopilot=container.ClusterAutopilotArgs(enabled=True),
+                enable_autopilot=True,
                 deletion_protection=False,
                 opts=ResourceOptions(parent=self),
             )
