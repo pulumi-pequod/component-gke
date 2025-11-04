@@ -9,7 +9,7 @@ This repo delivers a component to abstract the details related to:
 * master_version (Optional): The k8s version for the GKE cluster. Defaults to latest GKE supproted version.
 * node_count (Optional): The initial node count for the GKE cluster. Defaults to 3.
 * node_machine_type (Optional): The machine type for the GKE cluster. Defaults to `n1-standard-1`.
-
+* autopilot (Optional): Whether to create a GKE Autopilot cluster. Defaults to `false`. When enabled, `node_count` and `node_machine_type` are ignored.
 
 # Outputs
 
@@ -36,7 +36,8 @@ from pequod_gke import Cluster, ClusterArgs
 k8s_cluster = Cluster(base_name[:12], ClusterArgs(
     master_version=master_version,
     node_count=node_count,
-    node_machine_type=node_machine_type
+    node_machine_type=node_machine_type,
+    autopilot=False  # set to True to create an Autopilot cluster
 ))
 ```
 
@@ -44,7 +45,7 @@ k8s_cluster = Cluster(base_name[:12], ClusterArgs(
 ```
 import { Cluster } from "@pulumi-pequod/gke";
 
-const k8sCluster = new Cluster(baseName, {nodeCount: 4})
+const k8sCluster = new Cluster(baseName, { nodeCount: 4, autopilot: false })
 ```
 
 ### Dotnet
@@ -62,6 +63,7 @@ var K8sCluster= new Cluster("cluster");
       masterVersion: ${masterVersion}
       nodeCount: ${nodeCount}
       nodeMachineType: ${nodeMachineType}
+      autopilot: false
 ```
 
 

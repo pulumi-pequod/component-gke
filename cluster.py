@@ -15,6 +15,8 @@ class ClusterArgs(TypedDict):
     """The initial node count for the GKE cluster."""
     node_machine_type: pulumi.Input[str]
     """The machine type for the GKE cluster."""
+    autopilot: pulumi.Input[bool]
+    """Whether to create an Autopilot GKE cluster (defaults to False)."""
 
 class Cluster(pulumi.ComponentResource):
     """
@@ -39,37 +41,54 @@ class Cluster(pulumi.ComponentResource):
         super().__init__('pequod:gke:Cluster', name, {}, opts)
 
         latest_gke_version = container.get_engine_versions().latest_master_version
-        master_version = args.get("master_version") or latest_gke_version
-        node_count = args.get("node_count") or 3
-        node_machine_type = args.get("node_machine_type") or "n1-standard-1"
+        autopilot_enabled = bool(args.get("autopilot") or False)
 
-        k8s_cluster = container.Cluster(f"{name}-cluster", 
-                                        initial_node_count=1,
-                                        remove_default_node_pool=True,
-                                        min_master_version=master_version,
-                                        deletion_protection=False,
-                                        opts=ResourceOptions(parent=self))
+        # Note: Autopilot clusters manage nodes and versioning automatically; avoid setting fields
+        # that are incompatible in Autopilot mode (initial_node_count, remove_default_node_pool,
+        # min_master_version, and any NodePools).
+        if autopilot_enabled:
+            k8s_cluster = container.Cluster(
+                f"{name}-cluster",
+                autopilot=container.ClusterAutopilotArgs(enabled=True),
+                deletion_protection=False,
+                opts=ResourceOptions(parent=self),
+            )
+        else:
+            master_version = args.get("master_version") or latest_gke_version
+            node_count = args.get("node_count") or 3
+            node_machine_type = args.get("node_machine_type") or "n1-standard-1"
 
-        node_pool = container.NodePool(f"{name}-primary-node-pool", 
-                                        cluster=k8s_cluster.name,
-                                        initial_node_count=node_count,
-                                        location=k8s_cluster.location,
-                                        node_config=container.NodePoolNodeConfigArgs(
-                                          preemptible=True,
-                                          machine_type=node_machine_type,
-                                          oauth_scopes=[
-                                            "https://www.googleapis.com/auth/compute",
-                                            "https://www.googleapis.com/auth/devstorage.read_only",
-                                            "https://www.googleapis.com/auth/logging.write",
-                                            "https://www.googleapis.com/auth/monitoring",
-                                          ]
-                                        ),
-                                        version=master_version,
-                                        management=container.NodePoolManagementArgs(
-                                          auto_repair=True,
-                                          auto_upgrade=True,
-                                        ),
-                                        opts=ResourceOptions(parent=self, depends_on=[k8s_cluster]))
+            k8s_cluster = container.Cluster(
+                f"{name}-cluster",
+                initial_node_count=1,
+                remove_default_node_pool=True,
+                min_master_version=master_version,
+                deletion_protection=False,
+                opts=ResourceOptions(parent=self),
+            )
+
+            _node_pool = container.NodePool(
+                f"{name}-primary-node-pool",
+                cluster=k8s_cluster.name,
+                initial_node_count=node_count,
+                location=k8s_cluster.location,
+                node_config=container.NodePoolNodeConfigArgs(
+                    preemptible=True,
+                    machine_type=node_machine_type,
+                    oauth_scopes=[
+                        "https://www.googleapis.com/auth/compute",
+                        "https://www.googleapis.com/auth/devstorage.read_only",
+                        "https://www.googleapis.com/auth/logging.write",
+                        "https://www.googleapis.com/auth/monitoring",
+                    ],
+                ),
+                version=master_version,
+                management=container.NodePoolManagementArgs(
+                    auto_repair=True,
+                    auto_upgrade=True,
+                ),
+                opts=ResourceOptions(parent=self, depends_on=[k8s_cluster]),
+            )
 
         # Manufacture a GKE-style Kubeconfig. Note that this is slightly "different" because of the way GKE requires
         # gcloud to be in the picture for cluster authentication (rather than using the client cert/key directly).
@@ -99,7 +118,7 @@ users:
       installHint: Install gke-gcloud-auth-plugin for use with kubectl by following
         https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke
       provideClusterInfo: true
-        """.format(info[2]['cluster_ca_certificate'], info[1], '{0}_{1}_{2}'.format(project, zone, info[0])))
+            """.format(info[2]['cluster_ca_certificate'], info[1], '{0}_{1}_{2}'.format(project, zone, info[0])))
 
         self.kubeconfig = pulumi.Output.secret(k8s_config)
 
