@@ -15,6 +15,8 @@ class ClusterArgs(TypedDict):
     """The initial node count for the GKE cluster."""
     node_machine_type: pulumi.Input[str]
     """The machine type for the GKE cluster."""
+    location: Optional[pulumi.Input[str]]
+    """The location (region or zone) for the GKE cluster. If not specified, defaults to the provider's configured zone. If zone is configured, cluster is zonal and only deployed in that zone."""
     autopilot: pulumi.Input[bool]
     """Whether to create an Autopilot GKE cluster (defaults to False)."""
 
@@ -60,6 +62,7 @@ class Cluster(pulumi.ComponentResource):
 
             k8s_cluster = container.Cluster(
                 f"{name}-cluster",
+                location=args.get("location"), 
                 initial_node_count=1,
                 remove_default_node_pool=True,
                 min_master_version=master_version,
