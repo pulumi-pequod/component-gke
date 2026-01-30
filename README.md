@@ -4,18 +4,6 @@ Abstraction for Google Cloud K8s cluster resources.
 This repo delivers a component to abstract the details related to:
 - Creating a Google Cloud K8s cluster.
 
-# Inputs
-
-* master_version (Optional): The k8s version for the GKE cluster. Defaults to latest GKE supproted version.
-* node_count (Optional): The initial node count for the GKE cluster. Defaults to 3.
-* node_machine_type (Optional): The machine type for the GKE cluster. Defaults to `n1-standard-1`.
-* autopilot (Optional): Whether to create a GKE Autopilot cluster. Defaults to `false`. When enabled, `node_count` and `node_machine_type` are ignored.
-
-# Outputs
-
-* cluster_name: Name of the Google Cloud cluster.
-* kubeconfig: kubeconfig for accessing the cluster.
-
 # Usage
 ## Specify Package in `Pulumi.yaml`
 
